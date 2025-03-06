@@ -67,7 +67,7 @@ def preprocess(X, route_mat):
 
     route_flatten = route_mat.reshape(-1, seq_len)
 
-    max_len = torch.max(torch.sum(route_flatten > 0, dim=1))  #此前已将无需路由的块的索引全部置为0
+    max_len = torch.max(torch.sum(route_flatten > 0, dim=1))
 
     max_len = min(max_len, int(seq_len * 0.6))
 
@@ -77,7 +77,7 @@ def preprocess(X, route_mat):
 
     x = torch.index_select(input_, 0, ids)
 
-    x = x.view(n_expert, batch_size, max_len, d_model)          #!!!这里可能有问题,先检查 一下维度
+    x = x.view(n_expert, batch_size, max_len, d_model)
     ids = ids.view(n_expert, batch_size, max_len)
 
     return x, ids, seq_ids.cuda()
@@ -92,7 +92,7 @@ class SwitchGate(nn.Module):
         self.capacity_factor = config['capacity']
         self.epsilon = config['epsilon']
         self.w_gate = nn.Linear(self.dim, self.num_experts)
-        # self.topk = config['attn_topk']  ##!!!根据情况选择是使用topk还是transformer_topk
+        # self.topk = config['attn_topk']
         self.topk = self.num_experts // 2
 
     def forward(self, X, use_aux_loss=False):
@@ -108,7 +108,7 @@ class SwitchGate(nn.Module):
         batch_size, seq_len, d_model = X.shape
 
         X = self.w_gate(X)
-        gate_scores = F.softmax(X, dim=-1)    #token路由版本
+        gate_scores = F.softmax(X, dim=-1)
 
         top_k_scores, top_k_indices = gate_scores.topk(self.topk, dim=-1)
 
@@ -252,7 +252,7 @@ class SparseSelfAttention(nn.Module):
         K = QKV[:, :, :, 1, :]
         V = QKV[:, :, :, 2, :]
 
-        attn_out = self.attn(Q, K, V, route_mat, seq_ids, attn_mask)    ##!!!!!!!!!!mask可能也要分开
+        attn_out = self.attn(Q, K, V, route_mat, seq_ids, attn_mask)
 
         outputs, _ = self.ff(attn_out, keep_shape=False)
 
