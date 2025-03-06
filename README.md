@@ -4,6 +4,10 @@ This repository hosts the code and models for the paper:
 
 [Union of Experts: Adapting Hierarchical Routing to Equivalently Decomposed Transformer](https://www.arxiv.org/abs/2503.02495)
 
+<p align="center">
+  <img width="100%" src="figures/model_architecture.png">
+</p>
+
 ## Abstract
 Mixture-of-Experts (MoE) enhances model performance while maintaining computational efficiency, making it well-suited for large-scale applications. However, expert in exist MoE paradigm works as an individual, thereby lacking high-quality expert interactions. Moreover, they have not been effectively extended to attention block, which constrains further efficiency improvements. To tackle these issues, we propose Union-of-Experts (UoE), which decomposes transformer into an equitant group of experts, and then implement selective routing on input data and experts. 
 
