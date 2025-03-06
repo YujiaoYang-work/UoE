@@ -800,7 +800,7 @@ class XMoEDecoderLayer(nn.Module):
 
     def forward(self, dec_inp, dec_attn_mask=None, mems=None):
 
-        output, moe_loss, my_probe = self.layer(dec_inp, dec_attn_mask, mems)      #####!!!!注意：output是一个元组，其中还有两个返回值未使用，分别是moe_loss和my_probe
+        output, moe_loss, my_probe = self.layer(dec_inp, dec_attn_mask, mems)
 
         return output
 
