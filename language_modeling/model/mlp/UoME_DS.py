@@ -51,7 +51,7 @@ class SwitchGate(nn.Module):
         self.capacity_factor = config['capacity']
         self.epsilon = config['epsilon']
         self.w_gate = nn.Linear(self.dim, self.num_experts)
-        self.topk = config['topk'] ##!!!根据情况选择是使用topk还是transformer_topk
+        self.topk = config['topk']
 
     def forward(self, X, use_aux_loss=False):
         """
@@ -87,16 +87,6 @@ class SwitchGate(nn.Module):
 
         # Norm gate scores to sum to the capacity
         gate_scores = (masked_gate_scores / denominators) * capacity
-
-        if use_aux_loss:
-            pass       #暂时忽略
-            # load = gate_scores.sum(0)  # Sum over all examples
-            # importance = gate_scores.sum(1)  # Sum over all experts
-            #
-            # # Aux loss is mean suqared difference between load and importance
-            # loss = ((load - importance) ** 2).mean()
-            #
-            # return gate_scores, loss
 
         return gate_scores
 
