@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-# from layers2D89 import RowParallelLinearWithMoE, RowParallelMatmulWithMoE, ColumnParallelMatmulWithMoE, ColumnParallelLinearWithMoE
 import torch.nn.functional as F
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -62,8 +61,8 @@ class SwitchGate(nn.Module):
         self.epsilon = config['epsilon']
         self.w_gate = nn.Linear(self.dim, self.num_experts)
         # self.s_gate = nn.Linear(config.max_seq_len, config.max_seq_len // patch_size)
-        # self.topk = config['attn_topk']  ##!!!根据情况选择是使用topk还是transformer_topk
-        self.topk = n_head  ##!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!注意！！！
+        # self.topk = config['attn_topk']
+        self.topk = n_head
 
     def forward(self, X, use_aux_loss=False):
         """
@@ -77,17 +76,8 @@ class SwitchGate(nn.Module):
         """
         batch_size, seq_len, d_model = X.shape
 
-        # with profiler.profile(use_cuda=True, record_shapes=False, profile_memory=True) as prof:
-
         X = self.w_gate(X)
-        gate_scores = F.softmax(X, dim=-1)    #token路由版本
-
-        # prof.export_chrome_trace("/home/yujiao/a1/profile.json")
-        # gate_scores = F.softmax(self.s_gate(self.w_gate(X).transpose(1, 2)), dim=-1).transpose(1, 2)    #patch路由版本
-        # print(gate_scores, "gate1")
-        #输出：[batch_size, seq_len, n_experts] (token路由版本)
-        #输出：[batch_size, patch_len, n_experts] (patch路由版本)
-        # print(self.topk)
+        gate_scores = F.softmax(X, dim=-1)   
         top_k_scores, top_k_indices = gate_scores.topk(self.topk, dim=-1)
 
         # # Determine the top-1 expert for each token
@@ -110,15 +100,5 @@ class SwitchGate(nn.Module):
 
         # Norm gate scores to sum to the capacity
         gate_scores = (masked_gate_scores / denominators) * capacity
-
-        if use_aux_loss:
-            pass       #暂时忽略
-            # load = gate_scores.sum(0)  # Sum over all examples
-            # importance = gate_scores.sum(1)  # Sum over all experts
-            #
-            # # Aux loss is mean suqared difference between load and importance
-            # loss = ((load - importance) ** 2).mean()
-            #
-            # return gate_scores, loss
 
         return gate_scores, None
