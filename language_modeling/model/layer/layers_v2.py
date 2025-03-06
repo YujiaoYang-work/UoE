@@ -233,11 +233,11 @@ class ColumnParallelLinear(torch.nn.Module):
         for i in range(self.world_size):
             bias = self.bias[i] if not self.skip_bias_add else None
 
-            # output_.append(input.matmul(self.weight[i].t()) + bias)              #注意，纵向切割时，bias是在乘积的时候相加(gather之前)，横向切割时，是在乘积结束后相加(reduce之后)
-            output_.append(F.linear(input_, self.weight[i], bias))              #这两句效果类似，或许就实验结果来看，上面这一种略微好一丢丢
+            # output_.append(input.matmul(self.weight[i].t()) + bias)    
+            output_.append(F.linear(input_, self.weight[i], bias))
         if self.gather_output:
             # All-gather across the partitions.
-            output = _gather(output_)                    #dim按照实际情况进行更改
+            output = _gather(output_)
         else:
             output = output_
         if (self.skip_bias_add == True and self.bias):
@@ -266,7 +266,7 @@ class ColumnParallelLinearWithMoE(torch.nn.Module):
             dtype = params_dtype
             weight_i = nn.Parameter(torch.empty(
                 self.input_size, self.output_size_per_partition,
-                device=torch.cuda.current_device(), dtype=dtype))  #####, dtype=params_dtype
+                device=torch.cuda.current_device(), dtype=dtype))
             weight_i = init_method(weight_i)
             weight0.append(weight_i)
         weight0 = torch.stack(weight0, dim=0)
@@ -385,35 +385,6 @@ class RowParallelLinear(torch.nn.Module):
         return output, output_bias
 
 class RowParallelLinearWithMoE(torch.nn.Module):
-    """Linear layer with row parallelism.
-
-    The linear layer is defined as Y = XA + b. A is parallelized along
-    its first dimension and X along its second dimension as:
-               -   -
-              | A_1 |
-              | .   |
-          A = | .   |        X = [X_1, ..., X_p]
-              | .   |
-              | A_p |
-               -   -
-    Arguments:
-        input_size: first dimension of matrix A.
-        output_size: second dimension of matrix A.
-        bias: If true, add bias. Note that bias is not parallelized.
-        input_is_parallel: If true, we assume that the input is already
-                           split across the GPUs and we do not split
-                           again.
-        init_method: method to initialize weights. Note that bias is always set
-                     to zero.
-        stride: For the strided linear layers.
-        keep_master_weight_for_test: This was added for testing and should be
-                                     set to False. It returns the master weights
-                                     used for initialization.
-        skip_bias_add: This was added to enable performance optimations where bias
-                       can be fused with other elementwise operations. we skip
-                       adding bias but instead return it.
-    """
-
     def __init__(self, input_size, output_size, world_size, bias=True, keep_shape=True,
                  init_method=init.xavier_normal_, stride=1,
                  keep_master_weight_for_test=False,
@@ -435,8 +406,7 @@ class RowParallelLinearWithMoE(torch.nn.Module):
             dtype = torch.float32
             weight_i = nn.Parameter(torch.empty(
                 self.input_size_per_partition, self.output_size,
-                device=torch.cuda.current_device(), dtype=dtype))  #####, dtype=params_dtype
-
+                device=torch.cuda.current_device(), dtype=dtype))
             weight_i = init_method(weight_i)
             weight0.append(weight_i)
         weight0 = torch.stack(weight0, dim=0)
@@ -524,7 +494,7 @@ def RowParallelMatmulWithMoE(input1, input2, world_size, idx_list, norm_factor=1
                 b = input2[i][idx_list[i], :]
                 matmul_result = torch.baddbmm(matmul_result,
                 a,  # [b * np, s, hn]
-                b.transpose(-2, -1),  # [b * np, hn, s]                !!!!!!4.7日修改，暂未debug，可能出现问题
+                b.transpose(-2, -1),  # [b * np, hn, s]
                 beta=0.0, alpha=(1.0 / norm_factor))
                 output[idx_list[i], :, :] = matmul_result
         return output
@@ -545,20 +515,19 @@ def ColumnParallelMatmul(input1, input2, gather_output=True):
         output_.append(torch.bmm(input1, input2[i]))
     if gather_output:
         # All-gather across the partitions.
-        output = _gather(output_)                    #dim按照实际情况进行更改
+        output = _gather(output_)              
     else:
         output = output_
 
     return output
 
 def ColumnParallelMatmulWithMoE(input1, input2, world_size, idx_list, keep_shape=True, combine_head=True):
-    ###注意：这里的keep_shape同时关注输入和输出的格式，默认同一条运算路径上的keep_shape是一致的，如果不一致，会导致计算错误。后面为了体现兼容性，可以写出两种keep_shape,分别关注输入和输出的格式
     if (keep_shape):
         bs, seq_len, d_model = input2.shape
         
         input1 = copy_to_model_region(input1)
         if not isinstance(input1, list):
-            input2 = scatter_to_model_region(input2)                                                        ###!!!!!!4.7日修改：去除.transpose(1, 2)，与V的乘积不用转置
+            input2 = scatter_to_model_region(input2)
         output = torch.zeros([bs, seq_len, d_model]).to(input1.device)
         for i in range(world_size):
             if (len(idx_list[i]) != 0):
