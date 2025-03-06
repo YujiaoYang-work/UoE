@@ -178,7 +178,7 @@ class SparseSelfAttention(nn.Module):
             init_method=init.xavier_normal_,
             skip_bias_add=False)
 
-    def transpose_for_scores(self, x):            #注意：在正式版中x应当改为大写
+    def transpose_for_scores(self, x): 
         new_x_shape = x.size()[:-1] + (self.num_attention_heads, self.attention_head_size)
         x = x.view(*new_x_shape)
         return x.permute(0, 2, 1, 3)
