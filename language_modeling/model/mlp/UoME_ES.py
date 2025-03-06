@@ -1,4 +1,3 @@
-#注意：本项目中有的部分不使用本文件中的MLP，后面要全部转移到这里来
 import torch
 import torch.nn as nn
 from model.layer.layers_v2 import split_tensor_along_last_dim, ColumnParallelLinearWithMoE, RowParallelLinearWithMoE
@@ -6,8 +5,6 @@ from process.process_es import preprocess, preprocess2, preprocessMH
 from itertools import chain
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
-# from process import preprocess
 class MLP(nn.Module):
     def __init__(self, config):
         super(MLP, self).__init__()
@@ -154,7 +151,6 @@ class S_MH_MLP(nn.Module):
 
         return x
 
-#取消聚合层的版本
 class S_MH_MLP(nn.Module):
     def __init__(self, config):
         super(S_MH_MLP, self).__init__()
@@ -269,9 +265,6 @@ class U_MLP(nn.Module):
             if (len(idx_list[i]) != 0):
                 x[i] = self.drop1[i](self.act1[i](x[i]))
 
-        # for i in range(self.n_experts):
-        #     print(x[i].shape, "fvkmodifvvdfvdsfvdsfv")
-
         x = torch.cat(x, dim=-1)
 
         output_list, _ = self.linear2(x, idx_list=idx_list, keep_shape=False)
@@ -284,10 +277,8 @@ class U_MLP(nn.Module):
         output = self.drop2(output)
 
         if self.pre_lnorm:
-            ##### residual connection
             output = y + output
         else:
-            ##### residual connection + layer normalization
             output = self.layer_norm(y + output)
 
         return output
@@ -371,87 +362,14 @@ class U_MLP(nn.Module):
         # sys.exit(0)
 
         if self.pre_lnorm:
-            ##### residual connection
             output = y + output
         else:
-            ##### residual connection + layer normalization
             output = self.layer_norm(y + output)
 
 
         # print("dfvmdoifv")
 
         return output
-
-
-class U_MLP1(nn.Module):
-    def __init__(self,  d_model, d_inner, dropout, config, pre_lnorm):
-        super(U_MLP, self).__init__()
-
-        self.dim = d_model
-        self.hidden_dim = d_inner
-        self.n_experts = config['n_experts']
-        self.topk = config['topk']
-        # print(self.dim, self.dim*197)
-        # import sys
-        # sys.exit(0)
-        self.switch = nn.Linear(self.dim * 60, self.n_experts)
-        self.linear1 = nn.Linear(
-            self.dim,
-            self.hidden_dim)
-
-        self.linear1 = ColumnParallelLinearWithMoE(
-            self.dim,
-            self.hidden_dim,
-            self.n_experts,
-            gather_output=False,
-            init_method=config['init_method'],
-            skip_bias_add=False)
-
-        self.act1 = nn.GELU()
-        self.drop1 = torch.nn.Dropout(p=dropout)
-
-        self.linear2 = nn.Linear(
-            self.hidden_dim,
-            self.dim)
-
-        self.drop2 = torch.nn.Dropout(p=dropout)
-        self.pre_lnorm = pre_lnorm
-        self.layer_norm = nn.LayerNorm(self.dim)
-
-        self.linear3 = nn.Linear(self.dim, self.dim)
-        self.drop3 = torch.nn.Dropout(p=dropout)
-
-    def forward(self, x):
-
-        batch_size, seq_len, d_model = x.shape
-        y = x
-
-        X_flattened = x.reshape(batch_size, -1)
-        route_prob = self.switch(X_flattened).view(batch_size, self.n_experts)
-        route_prob = nn.functional.softmax(route_prob, dim=-1)
-        x, idx_list = preprocess(x, route_prob, k=self.topk)
-
-        flattened_list = list(chain(*idx_list))
-
-        x, _ = self.linear1(x, idx_list, keep_shape=False, split_head=False)
-        print(x[0].shape)
-
-        x = self.drop1(self.act1(x))
-
-        output = self.linear2(x)
-
-        output = self.drop2(output)
-
-        if self.pre_lnorm:
-            ##### residual connection
-            output = y + output
-        else:
-            ##### residual connection + layer normalization
-            output = self.layer_norm(y + output)
-        # print("fvpdofkv")
-
-        return output
-
 
 class MH_U_MLP(nn.Module):
     def __init__(self, config):
