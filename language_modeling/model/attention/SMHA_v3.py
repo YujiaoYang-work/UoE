@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import math
 from model.layer.layers_v2 import RowParallelLinearWithMoE, RowParallelMatmulWithMoE, ColumnParallelMatmulWithMoE, ColumnParallelLinearWithMoE
-# from layers2D89 import RowParallelLinearWithMoE, RowParallelMatmulWithMoE, ColumnParallelMatmulWithMoE, ColumnParallelLinearWithMoE
 import torch.nn.functional as F
 import numpy as np
 
