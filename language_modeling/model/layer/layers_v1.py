@@ -78,7 +78,6 @@ def get_args():
     }
     return args
 
-###############################################################
 def split_tensor_along_last_dim(tensor, num_partitions,
                                 contiguous_split_chunks=False):
     """Split a tensor along its last dimension.
@@ -348,35 +347,6 @@ class ColumnParallelLinearWithMoE(torch.nn.Module):
             return output_, self.bias
 
 class RowParallelLinear(torch.nn.Module):
-    """Linear layer with row parallelism.
-
-    The linear layer is defined as Y = XA + b. A is parallelized along
-    its first dimension and X along its second dimension as:
-               -   -
-              | A_1 |
-              | .   |
-          A = | .   |        X = [X_1, ..., X_p]
-              | .   |
-              | A_p |
-               -   -
-    Arguments:
-        input_size: first dimension of matrix A.
-        output_size: second dimension of matrix A.
-        bias: If true, add bias. Note that bias is not parallelized.
-        input_is_parallel: If true, we assume that the input is already
-                           split across the GPUs and we do not split
-                           again.
-        init_method: method to initialize weights. Note that bias is always set
-                     to zero.
-        stride: For the strided linear layers.
-        keep_master_weight_for_test: This was added for testing and should be
-                                     set to False. It returns the master weights
-                                     used for initialization.
-        skip_bias_add: This was added to enable performance optimations where bias
-                       can be fused with other elementwise operations. we skip
-                       adding bias but instead return it.
-    """
-
     def __init__(self, input_size, output_size, world_size, bias=True,
                  init_method=init.xavier_normal_, stride=1,
                  keep_master_weight_for_test=False,
@@ -454,35 +424,6 @@ class RowParallelLinear(torch.nn.Module):
         return output, output_bias
 
 class RowParallelLinearWithMoE(torch.nn.Module):
-    """Linear layer with row parallelism.
-
-    The linear layer is defined as Y = XA + b. A is parallelized along
-    its first dimension and X along its second dimension as:
-               -   -
-              | A_1 |
-              | .   |
-          A = | .   |        X = [X_1, ..., X_p]
-              | .   |
-              | A_p |
-               -   -
-    Arguments:
-        input_size: first dimension of matrix A.
-        output_size: second dimension of matrix A.
-        bias: If true, add bias. Note that bias is not parallelized.
-        input_is_parallel: If true, we assume that the input is already
-                           split across the GPUs and we do not split
-                           again.
-        init_method: method to initialize weights. Note that bias is always set
-                     to zero.
-        stride: For the strided linear layers.
-        keep_master_weight_for_test: This was added for testing and should be
-                                     set to False. It returns the master weights
-                                     used for initialization.
-        skip_bias_add: This was added to enable performance optimations where bias
-                       can be fused with other elementwise operations. we skip
-                       adding bias but instead return it.
-    """
-
     def __init__(self, input_size, output_size, world_size, bias=True, keep_shape=True,
                  init_method=init.xavier_normal_, stride=1,
                  keep_master_weight_for_test=False,
@@ -624,7 +565,7 @@ def RowParallelMatmulWithMoE(input1, input2, world_size, idx_list, norm_factor=1
                 b = input2[i][idx_list[i], :]
                 matmul_result = torch.baddbmm(matmul_result,
                 a,  # [b * np, s, hn]
-                b.transpose(-2, -1),  # [b * np, hn, s]                !!!!!!4.7日修改，暂未debug，可能出现问题
+                b.transpose(-2, -1),  # [b * np, hn, s]
                 beta=0.0, alpha=(1.0 / norm_factor))
                 output[idx_list[i], :, :] = matmul_result
         return output
