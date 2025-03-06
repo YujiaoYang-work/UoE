@@ -11,7 +11,7 @@ Our approach advances MoE design with four key innovations:(1) We conducted equi
 
 Our experiments demonstrate that the UoE model surpass Full Attention, state-of-art MoEs and efficient transformers (including the model architecture of recently proposed DeepSeek-V3) in several tasks across image and natural language domains. In language modeling tasks, we achieve an average reduction of 2.38 in perplexity compared to the best-performed MoE method with an average of 76% FLOPs. In Long Range Arena benchmark, we recorded an average score that is at least 0.68% higher than all comparison models including Full Attention, MoEs, and transformer variants, with only 50% FLOPs of the best MoE method. In image classification, our model yielded an average accuracy improvement of 1.75% than the best model while maintaining comparable FLOPs.
 
-# Updates
+## Updates
 - March 5, 2025: Release the code for [UoE model](./language_modeling/model) and [language modeling experiments](./language_modeling)
 
 More introduction to the code will be further improved later. We will also open source the remaining experimental parts of the paper. If you would like to learn more about our project, please wait. We will complete the construction of the code repository soon. 
