@@ -24,6 +24,7 @@ Our experiments demonstrate that the UoE model surpass Full Attention, state-of-
 
 ## Updates
 - March 5, 2025: Release the code for [UoE model](./language_modeling/model) and [language modeling experiments](./language_modeling)
+- March 18, 2025: Release the code for [long range modeling experiments](./long_range_modeling)
 
 We will also open source the remaining experimental parts of the paper. If you would like to learn more about our project, please wait. We will release these codes in a few days.
 
